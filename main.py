@@ -1,19 +1,47 @@
 import json
+import os
 
 
-def create_product_and_sku(tx,batch):
-    tx.run(
+def get_json_objects(directory:str):
     '''
-    UNWIND $batch as param
-    MERGE (c:Contract {id:param._Contract__contract_id,cost:param._Contract__price})
-    WITH param,c
-    MATCH (cat:Category {id:param._Contract__car_category})
-    MERGE (c) - [:INCLUDES] -> (cat)
-    ''',parameters=batch)
+    Function takes a string that represents the absolute path containing JSON files.
+    outputs a List of Json Objects.
+    :param directory: Str
+    :return: list of json objects
+    '''
+    paths = [os.path.join(directory,path) for path in os.listdir(directory)]
+
+    json_objects = []
+    for file in paths:
+        with open(file) as jsonfile:
+            data = json.load(jsonfile)
+            json_objects.append(data)
+    return json_objects
+
+
+def get_product_label_and_properties(json,acceptable_properties:list):
+    '''
+    TODO: I really DO NOT like having to explicitly pass a list of acceptable properties.. There has to be a better solution...
+    :param json: Json Object
+    :param acceptable_properties: list of acceptable paramters for the product
+    :return: Dictionary -> key = label, val = list of properties
+    '''
+    for data in json.values():
+        for product_label,product_attributes in data.items():
+            label_and_properties = {label:[_property for _property in product_attributes.keys() if _property in acceptable_properties] for label in data.keys()}
+    return label_and_properties
 
 
 
-def create_
+def get_product_parameters(json):
+    list_of_dict_objects = []
+
+    for data in json.values():
+        for product_label,product_attributes in data.items():
+
+
+
+
 
 
 
@@ -42,11 +70,22 @@ def open_file_read_schema(file: str):
 
 
 
+if __name__ == '__main__':
+
+
+    sample_file = r'/Users/alexanderfournier/PycharmProjects/KohlsDataModel/resources/data/product_graphql_response.json'
+    directory = r'/Users/alexanderfournier/PycharmProjects/KohlsDataModel/resources/data'
+    json_objects = get_json_objects(directory)
+
+
+    first_json_object = json_objects[0]
+    acceptable_product_properties = ['id','title','variations','altTag','description','brand']
+    label_and_properties = get_product_label_and_properties(first_json_object,acceptable_product_properties)
+    construct_base_product_cypher(label_and_properties)
 
 
 
 
 
 
-file = r'/Users/alexanderfournier/Downloads/Java-Batch/src/resources/product_graphql_response.json'
-open_file_read_schema(file)
+
