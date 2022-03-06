@@ -66,7 +66,6 @@ def get_sku(json,*keys):
 def get_sku_properties(skus):
     sku_properties = []
     for sku in skus:
-        pprint(sku)
         for sku_key,sku_value in sku.items():
             if isinstance(sku_value,str):
                 sku_properties.append(sku)
@@ -119,22 +118,15 @@ if __name__ == '__main__':
 
 
 
-
-
-
-
-
-
-
-
-
     json_objects = get_json_objects(directory)
 
 
     for json in json_objects:
         product_properties = get_product_properties(json,acceptable_product_properties)
         skus = get_sku(json,*sku_keys)
-        get_sku_properties(skus)
+        sku_properties = get_sku_properties(skus)
+
+
 
 
 
