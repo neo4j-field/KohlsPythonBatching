@@ -1,5 +1,8 @@
 import json
 import os
+from functools import reduce
+from neo4j import GraphDatabase
+from pprint import pprint
 
 
 def get_json_objects(directory:str):
@@ -33,27 +36,56 @@ def get_product_label_and_properties(json,acceptable_properties:list):
 
 
 
-def get_product_parameters(json):
-    list_of_dict_objects = []
-
+def get_product_properties(json,acceptable_product_properties):
+    '''
+    traverses json objects to retrieve product keys and values.
+    :param json: json object
+    :param acceptable_product_properties: list of acceptable properies to grab
+    :return:
+    '''
+    product_parameters = []
     for data in json.values():
-        for product_label,product_attributes in data.items():
+        for product_key, product_vals in data.items():
+            parameter = {k:v for k,v in product_vals.items() if k in acceptable_product_properties}
+            product_parameters.append(parameter)
+    return product_parameters
 
 
-
-
-
-
-
-def batch_parameters(parameters:list,batch_size:int):
+def get_sku(json,*keys):
     '''
-    Chunks a list into smaller sublists. The idea here is to take create batches or chunks of parameters.
-    :param parameters: input parameters
-    :param chunk_size: size of sublists
-    :return: list of lists. sublists contain a fixed number of elements (the last sublist will just contain the remainder)
+    Function that traverses deep into a dictionary
+    https://stackoverflow.com/questions/25833613/safe-method-to-get-value-of-nested-dictionary
+
+    :param json: json object
+    :param keys: variable length args that represent the keys to traverse.
+    :return:
     '''
-    chunks = (parameters[x:x+batch_size] for x in range(0, len(parameters),batch_size))
-    return chunks
+    return reduce(lambda d, key: d.get(key) if d else None,keys,json)
+
+
+def get_sku_properties(skus):
+    sku_properties = []
+    for sku in skus:
+        pprint(sku)
+        for sku_key,sku_value in sku.items():
+            if isinstance(sku_value,str):
+                sku_properties.append(sku)
+
+    return sku_properties
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def open_file_read_schema(file: str):
@@ -70,18 +102,54 @@ def open_file_read_schema(file: str):
 
 
 
+
+
+
 if __name__ == '__main__':
 
 
-    sample_file = r'/Users/alexanderfournier/PycharmProjects/KohlsDataModel/resources/data/product_graphql_response.json'
+    auth = ('neo4j','Z3NgZwK0JuVMysRpLfgKI8M2S9hGjfzu_iC3CU1ABvM')
+    uri = 'neo4j+s://fba1c714.databases.neo4j.io'
+    sample_input = r'/Users/alexanderfournier/PycharmProjects/KohlsDataModel/resources/data/product_graphql_response.json'
     directory = r'/Users/alexanderfournier/PycharmProjects/KohlsDataModel/resources/data'
+    acceptable_product_properties = ['id','title','variations','altTag','description','brand']
+    sku_keys = ('data','product','skus')
+    driver = GraphDatabase.driver(uri, auth=auth)
+
+
+
+
+
+
+
+
+
+
+
+
+
     json_objects = get_json_objects(directory)
 
 
-    first_json_object = json_objects[0]
-    acceptable_product_properties = ['id','title','variations','altTag','description','brand']
-    label_and_properties = get_product_label_and_properties(first_json_object,acceptable_product_properties)
-    construct_base_product_cypher(label_and_properties)
+    for json in json_objects:
+        product_properties = get_product_properties(json,acceptable_product_properties)
+        skus = get_sku(json,*sku_keys)
+        get_sku_properties(skus)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
