@@ -1,8 +1,13 @@
 import json
 import os
-from functools import reduce
+from functools import reduce,wraps
 from neo4j import GraphDatabase
-from pprint import pprint
+from transactionfunctions import create_product,create_sku
+
+
+
+
+
 
 
 def get_json_objects(directory:str):
@@ -20,7 +25,6 @@ def get_json_objects(directory:str):
             data = json.load(jsonfile)
             json_objects.append(data)
     return json_objects
-
 
 def get_product_label_and_properties(json,acceptable_properties:list):
     '''
@@ -64,25 +68,17 @@ def get_sku(json,*keys):
 
 
 def get_sku_properties(skus):
+    '''
+    get sku properties. I'm grabbing every property if the value in the key,pair is a string. (my logic is if it is a dict
+    we are going to be grabbing it later as a seperate node.
+    :param skus:
+    :return:
+    '''
     sku_properties = []
     for sku in skus:
-        for sku_key,sku_value in sku.items():
-            if isinstance(sku_value,str):
-                sku_properties.append(sku)
-
+        skus_parameters = {sku_key:sku_val for sku_key,sku_val in sku.items() if isinstance(sku_val,str)}
+        sku_properties.append(skus_parameters)
     return sku_properties
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -126,9 +122,21 @@ if __name__ == '__main__':
         skus = get_sku(json,*sku_keys)
         sku_properties = get_sku_properties(skus)
 
+    batch = {}
+    batch['batch'] = skus
 
 
 
+
+
+
+
+
+
+
+
+    with driver.session() as session:
+        session.write_transaction(create_sku,batch)
 
 
 
