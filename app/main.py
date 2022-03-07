@@ -3,7 +3,7 @@ import os
 from functools import reduce,wraps
 from neo4j import GraphDatabase,debug
 from transactionfunctions import create_product,create_sku
-
+import itertools
 
 
 
@@ -72,21 +72,6 @@ def ship_parameters(func):
 
 
 @ship_parameters
-def get_sku_properties(skus):
-    '''
-    get sku properties. I'm grabbing every property if the value in the key,pair is a string. (my logic is if it is a dict
-    we are going to be grabbing it later as a seperate node.
-    :param skus:
-    :return:
-    '''
-    sku_properties = []
-    for sku in skus:
-        skus_parameters = {sku_key:sku_val for sku_key,sku_val in sku.items() if isinstance(sku_val,str)}
-        sku_properties.append(skus_parameters)
-    return sku_properties
-
-
-@ship_parameters
 def get_product_properties(json,acceptable_product_properties):
     '''
     traverses json objects to retrieve product keys and values.
@@ -101,6 +86,46 @@ def get_product_properties(json,acceptable_product_properties):
             product_parameters.append(parameter)
     return product_parameters
 
+
+@ship_parameters
+def get_sku_properties(skus):
+    '''
+    get sku properties. I'm grabbing every property if the value in the key,pair is a string. (my logic is if it is a dict
+    we are going to be grabbing it later as a seperate node.
+    :param skus:
+    :return:
+    '''
+    sku_properties = []
+    for sku in skus:
+        skus_parameters = {sku_key:sku_val for sku_key,sku_val in sku.items() if isinstance(sku_val,str)}
+        sku_properties.append(skus_parameters)
+    return sku_properties
+
+
+
+def get_selling_channel_properties(sku):
+    '''
+    This doesn't follow the correct format. I don't know how to handle this data structure...
+    :param sku:
+    :return:
+    '''
+    for sku in skus:
+        selling_channel_parameters = {sku_key:sku_val for sku_key,sku_val in sku.items() if sku_key == 'sellingChannels'}
+        unpacked_selling_channel_parameters = [{'sellingChannels':val_elem} for val_elem in selling_channel_parameters['sellingChannels']]
+        return unpacked_selling_channel_parameters
+
+
+def get_omni_channel_properties(sku):
+    '''
+    This doesn't follow the correct format. I don't know how to handle this data structure...
+
+    :param sku:
+    :return:
+    '''
+    for sku in skus:
+        omni_channel_parameters = {sku_key:sku_val for sku_key,sku_val in sku.items() if sku_key == 'omniChannels'}
+        unpacked_omni_channel_parameters = [{'omniChannels':val_elem} for val_elem in omni_channel_parameters['sellingChannels']]
+        return unpacked_omni_channel_parameters
 
 
 
@@ -118,7 +143,6 @@ if __name__ == '__main__':
     auth = ('neo4j', 'Z3NgZwK0JuVMysRpLfgKI8M2S9hGjfzu_iC3CU1ABvM')
     uri = 'neo4j+s://fba1c714.databases.neo4j.io'
     driver = GraphDatabase.driver(uri, auth=auth)
-    debug.watch('neo4j')
 
 
 
@@ -130,6 +154,7 @@ if __name__ == '__main__':
         product_properties = get_product_properties(json,acceptable_product_properties)
         skus = get_sku(json,*sku_keys)
         sku_properties = get_sku_properties(skus)
+        selling_channel = get_selling_channel_properties(skus)
 
 
 
@@ -138,6 +163,8 @@ if __name__ == '__main__':
 
     with driver.session() as session:
         session.write_transaction(create_sku,sku_properties)
+        session.write_transaction(create_product,product_properties)
+    driver.close()
 
 
 

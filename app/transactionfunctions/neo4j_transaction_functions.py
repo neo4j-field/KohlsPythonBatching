@@ -20,14 +20,15 @@ def create_product(tx,batch):
     tx.run(
     '''
     UNWIND $batch as param
-    MERGE (p:Product {title:param.title,variation:param.variation,altTag:param.altTag,description:param.description,brand:param.brand})
+    MERGE (p:Product {title:param.title})
+    SET p.variations=param.variations,p.altTag=param.altTag,p.description=param.description,p.brand=param.brand
     '''
     ,parameters=batch)
 
 
 
 def create_sku(tx,batch):
-    tx.run(
+    result = tx.run(
     '''
     UNWIND $batch as param
     MERGE (s:SKU {id:param.id}) 
@@ -35,5 +36,9 @@ def create_sku(tx,batch):
     ''',
         parameters = batch
     )
+
+    result.single()
+    return result.consume()
+
 
 
