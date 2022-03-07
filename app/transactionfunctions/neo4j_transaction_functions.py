@@ -16,22 +16,24 @@ def create_product_and_sku(tx,batch):
 
 
 
-def create_product(tx,parameters):
+def create_product(tx,batch):
     tx.run(
     '''
     UNWIND $batch as param
     MERGE (p:Product {title:param.title,variation:param.variation,altTag:param.altTag,description:param.description,brand:param.brand})
     '''
-    ,parameters=parameters)
+    ,parameters=batch)
 
 
 
-def create_sku(tx,parameters):
+def create_sku(tx,batch):
     tx.run(
     '''
     UNWIND $batch as param
     MERGE (s:SKU {id:param.id}) 
     SET s.colorFamily=param.colorFamily,s.displayColor=param.displayColor,s.vendorColor=param.vendorColor,s.sizeRange=param.sizeRange,s.status=param.status
     ''',
-        parameters = parameters
+        parameters = batch
     )
+
+

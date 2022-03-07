@@ -1,10 +1,8 @@
 import json
 import os
 from functools import reduce,wraps
-from neo4j import GraphDatabase
+from neo4j import GraphDatabase,debug
 from transactionfunctions import create_product,create_sku
-
-
 
 
 
@@ -26,6 +24,8 @@ def get_json_objects(directory:str):
             json_objects.append(data)
     return json_objects
 
+
+
 def get_product_label_and_properties(json,acceptable_properties:list):
     '''
     TODO: I really DO NOT like having to explicitly pass a list of acceptable properties.. There has to be a better solution...
@@ -40,6 +40,53 @@ def get_product_label_and_properties(json,acceptable_properties:list):
 
 
 
+
+
+
+def get_sku(json,*keys):
+    '''
+    Function that traverses deep into a dictionary
+    https://stackoverflow.com/questions/25833613/safe-method-to-get-value-of-nested-dictionary
+
+    :param json: json object
+    :param keys: variable length args that represent the keys to traverse.
+    :return:
+    '''
+    return reduce(lambda d, key: d.get(key) if d else None,keys,json)
+
+
+
+def ship_parameters(func):
+    '''
+    Decorator function that wraps the collection (list of maps) in another map to make compatiable with Neo4j transaction functions.
+    :param func: parameter generator functions
+    :return: dictionary: key = 'batch', value = list of maps
+    '''
+    @wraps(func)
+    def wrap(*args, **kw):
+        results = func(*args,**kw)
+        dict = {'batch':results}
+        return dict
+    return wrap
+
+
+
+@ship_parameters
+def get_sku_properties(skus):
+    '''
+    get sku properties. I'm grabbing every property if the value in the key,pair is a string. (my logic is if it is a dict
+    we are going to be grabbing it later as a seperate node.
+    :param skus:
+    :return:
+    '''
+    sku_properties = []
+    for sku in skus:
+        skus_parameters = {sku_key:sku_val for sku_key,sku_val in sku.items() if isinstance(sku_val,str)}
+        sku_properties.append(skus_parameters)
+    return sku_properties
+
+
+@ship_parameters
 def get_product_properties(json,acceptable_product_properties):
     '''
     traverses json objects to retrieve product keys and values.
@@ -55,47 +102,6 @@ def get_product_properties(json,acceptable_product_properties):
     return product_parameters
 
 
-def get_sku(json,*keys):
-    '''
-    Function that traverses deep into a dictionary
-    https://stackoverflow.com/questions/25833613/safe-method-to-get-value-of-nested-dictionary
-
-    :param json: json object
-    :param keys: variable length args that represent the keys to traverse.
-    :return:
-    '''
-    return reduce(lambda d, key: d.get(key) if d else None,keys,json)
-
-
-def get_sku_properties(skus):
-    '''
-    get sku properties. I'm grabbing every property if the value in the key,pair is a string. (my logic is if it is a dict
-    we are going to be grabbing it later as a seperate node.
-    :param skus:
-    :return:
-    '''
-    sku_properties = []
-    for sku in skus:
-        skus_parameters = {sku_key:sku_val for sku_key,sku_val in sku.items() if isinstance(sku_val,str)}
-        sku_properties.append(skus_parameters)
-    return sku_properties
-
-
-
-
-def open_file_read_schema(file: str):
-    '''
-
-    :param file: Str filepath
-    :return: json object
-    '''
-
-    with open(file) as f:
-        data = json.load(f)
-    print(json.dumps(data, indent=4))
-    return data
-
-
 
 
 
@@ -103,13 +109,16 @@ def open_file_read_schema(file: str):
 if __name__ == '__main__':
 
 
-    auth = ('neo4j','Z3NgZwK0JuVMysRpLfgKI8M2S9hGjfzu_iC3CU1ABvM')
-    uri = 'neo4j+s://fba1c714.databases.neo4j.io'
+
     sample_input = r'/Users/alexanderfournier/PycharmProjects/KohlsDataModel/resources/data/product_graphql_response.json'
     directory = r'/Users/alexanderfournier/PycharmProjects/KohlsDataModel/resources/data'
     acceptable_product_properties = ['id','title','variations','altTag','description','brand']
     sku_keys = ('data','product','skus')
+
+    auth = ('neo4j', 'Z3NgZwK0JuVMysRpLfgKI8M2S9hGjfzu_iC3CU1ABvM')
+    uri = 'neo4j+s://fba1c714.databases.neo4j.io'
     driver = GraphDatabase.driver(uri, auth=auth)
+    debug.watch('neo4j')
 
 
 
@@ -122,21 +131,14 @@ if __name__ == '__main__':
         skus = get_sku(json,*sku_keys)
         sku_properties = get_sku_properties(skus)
 
-    batch = {}
-    batch['batch'] = skus
-
-
-
-
-
-
 
 
 
 
 
     with driver.session() as session:
-        session.write_transaction(create_sku,batch)
+        session.write_transaction(create_sku,sku_properties)
+
 
 
 
