@@ -52,4 +52,14 @@ def create_department(tx,batch):
     ,parameters=batch)
 
 
+def create_subclass(tx,batch):
+    tx.run(
+    '''
+    UNWIND $batch as param
+    MERGE (s:Subclass {id:param.id})
+    SET s.description = param.description
+    '''
+    ,parameters=batch)
+
+
 

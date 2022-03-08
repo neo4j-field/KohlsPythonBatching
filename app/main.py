@@ -2,7 +2,7 @@ import json
 import os
 from functools import reduce,wraps
 from neo4j import GraphDatabase,debug
-from transactionfunctions import create_product,create_sku,create_department
+from transactionfunctions import *
 
 
 
@@ -127,12 +127,13 @@ def get_omni_channel_properties(skus):
         return unpacked_omni_channel_parameters
 
 
-
+@ship_parameters
 def get_subclass_properties(skus):
     subclass_properties = []
     for sku in skus:
         subclass_property = {key:value for key,value in sku.items() if key == 'subClass'}
-        subclass_properties.append(subclass_property)
+        for value in subclass_property.values():
+            subclass_properties.append(value)
     return subclass_properties
 
 
@@ -161,8 +162,23 @@ def get_department_properties(skus):
         department_property = {key:value for key,value in sku.items() if key == 'dept'}
         for value in department_property.values():
             department_properties.append(value)
-
     return department_properties
+
+
+
+
+
+def create_dynamic_attribute_base_queries(skus):
+    labels = []
+    sku = skus[0]
+    for sku_key,sku_value in sku.items():
+        if sku_key == 'dynamicAttributes':
+            for dynamic_attribute in sku_value:
+                for dynamic_element_key,dynamic_element_value in dynamic_attribute.items():
+                    if dynamic_element_key == 'name':
+                        labels.append(dynamic_element_value)
+
+
 
 
 
@@ -201,6 +217,7 @@ if __name__ == '__main__':
         subclass_properties = get_subclass_properties(skus)
         upc_properties = get_upc_properties(skus)
         department_properties = get_department_properties(skus)
+        create_dynamic_attribute_base_queries(skus)
 
 
 
@@ -212,6 +229,7 @@ if __name__ == '__main__':
         session.write_transaction(create_sku,sku_properties)
         session.write_transaction(create_product,product_properties)
         session.write_transaction(create_department,department_properties)
+        session.write_transaction(create_subclass,subclass_properties)
     driver.close()
 
 
