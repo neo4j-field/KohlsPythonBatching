@@ -3,7 +3,6 @@ import os
 from functools import reduce,wraps
 from neo4j import GraphDatabase,debug
 from transactionfunctions import create_product,create_sku
-import itertools
 
 
 
@@ -124,7 +123,7 @@ def get_omni_channel_properties(sku):
     '''
     for sku in skus:
         omni_channel_parameters = {sku_key:sku_val for sku_key,sku_val in sku.items() if sku_key == 'omniChannels'}
-        unpacked_omni_channel_parameters = [{'omniChannels':val_elem} for val_elem in omni_channel_parameters['sellingChannels']]
+        unpacked_omni_channel_parameters = [{'omniChannels':val_elem} for val_elem in omni_channel_parameters['omniChannels']]
         return unpacked_omni_channel_parameters
 
 
@@ -155,6 +154,7 @@ if __name__ == '__main__':
         skus = get_sku(json,*sku_keys)
         sku_properties = get_sku_properties(skus)
         selling_channel = get_selling_channel_properties(skus)
+        omni_channel = get_omni_channel_properties(skus)
 
 
 
