@@ -2,7 +2,7 @@ import json
 import os
 from functools import reduce,wraps
 from neo4j import GraphDatabase,debug
-from transactionfunctions import create_product,create_sku
+from transactionfunctions import create_product,create_sku,create_department
 
 
 
@@ -102,7 +102,7 @@ def get_sku_properties(skus):
 
 
 
-def get_selling_channel_properties(sku):
+def get_selling_channel_properties(skus):
     '''
     This doesn't follow the correct format. I don't know how to handle this data structure...
     :param sku:
@@ -114,7 +114,7 @@ def get_selling_channel_properties(sku):
         return unpacked_selling_channel_parameters
 
 
-def get_omni_channel_properties(sku):
+def get_omni_channel_properties(skus):
     '''
     This doesn't follow the correct format. I don't know how to handle this data structure...
 
@@ -125,6 +125,49 @@ def get_omni_channel_properties(sku):
         omni_channel_parameters = {sku_key:sku_val for sku_key,sku_val in sku.items() if sku_key == 'omniChannels'}
         unpacked_omni_channel_parameters = [{'omniChannels':val_elem} for val_elem in omni_channel_parameters['omniChannels']]
         return unpacked_omni_channel_parameters
+
+
+
+def get_subclass_properties(skus):
+    subclass_properties = []
+    for sku in skus:
+        subclass_property = {key:value for key,value in sku.items() if key == 'subClass'}
+        subclass_properties.append(subclass_property)
+    return subclass_properties
+
+
+
+def get_upc_properties(skus):
+    '''
+    This doesn't follow the correct format. I don't know how to handle this data structure...
+    :param skus:
+    :return:
+    '''
+    for sku in skus:
+        upc_properties = {key:value for key,value in sku.items() if key == 'upcs'}
+        unpacked_upc_channel_parameters = [{'upcs':val_elem} for val_elem in upc_properties['upcs']]
+        return unpacked_upc_channel_parameters
+
+
+@ship_parameters
+def get_department_properties(skus):
+    '''
+
+    :param skus:
+    :return: list of maps
+    '''
+    department_properties = []
+    for sku in skus:
+        department_property = {key:value for key,value in sku.items() if key == 'dept'}
+        for value in department_property.values():
+            department_properties.append(value)
+
+    return department_properties
+
+
+
+
+
 
 
 
@@ -153,8 +196,12 @@ if __name__ == '__main__':
         product_properties = get_product_properties(json,acceptable_product_properties)
         skus = get_sku(json,*sku_keys)
         sku_properties = get_sku_properties(skus)
-        selling_channel = get_selling_channel_properties(skus)
-        omni_channel = get_omni_channel_properties(skus)
+        selling_channel_properties = get_selling_channel_properties(skus)
+        omni_channel_properties = get_omni_channel_properties(skus)
+        subclass_properties = get_subclass_properties(skus)
+        upc_properties = get_upc_properties(skus)
+        department_properties = get_department_properties(skus)
+
 
 
 
@@ -164,6 +211,7 @@ if __name__ == '__main__':
     with driver.session() as session:
         session.write_transaction(create_sku,sku_properties)
         session.write_transaction(create_product,product_properties)
+        session.write_transaction(create_department,department_properties)
     driver.close()
 
 

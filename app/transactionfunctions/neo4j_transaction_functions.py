@@ -42,3 +42,14 @@ def create_sku(tx,batch):
 
 
 
+def create_department(tx,batch):
+    tx.run(
+    '''
+    UNWIND $batch as param
+    MERGE (d:Department {id:param.id})
+    SET d.description = param.description
+    '''
+    ,parameters=batch)
+
+
+
